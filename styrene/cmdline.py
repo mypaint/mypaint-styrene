@@ -108,9 +108,14 @@ def process_spec_file(spec, options):
     bundle.check_runtime_dependencies()
     output_dir = options.output_dir
     if not output_dir:
-        if not (options.build_zip or options.build_exe):
+        output_generating_options = [
+            options.build_zip,
+            options.build_exe,
+            options.build_7z,
+        ]
+        if not any(output_generating_options):
             logger.warning(
-                "Both --no-zip and --no-exe were specified, with no "
+                "No output is enabled and there is no specified "
                 "--output-dir to write and keep the remaining "
                 "intermediate files in."
             )
@@ -204,6 +209,13 @@ def main():
         action="store_false",
         dest="build_zip",
         default=True,
+    )
+    parser.add_option(
+        "--7z",
+        help="create a standalone .7z archive",
+        action="store_true",
+        dest="build_7z",
+        default=False,
     )
     parser.add_option(
         "--colour", "--color",

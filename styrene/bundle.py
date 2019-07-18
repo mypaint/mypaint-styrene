@@ -203,6 +203,8 @@ class NativeBundle:
             distfiles.extend(self._write_nsis_distfile(distroot, output_dir))
         if options.build_zip:
             distfiles.extend(self._write_zip_distfile(distroot, output_dir))
+        if options.build_7z:
+            distfiles.extend(self._write_7z_distfile(distroot, output_dir))
         return distfiles
 
     @property
@@ -713,6 +715,32 @@ class NativeBundle:
             for a, p in removed:
                 print("{action} {path}".format(action=a, path=p), file=fp)
 
+    def _write_generic_distfile(self, root, output_dir, ext, cmd_function):
+        """Generic helper for packaing frozen bundles into archives
+
+        :param str root: Frozen bundle location.
+        :param str output_dir: Where to write the output file.
+        :param str ext: File extension of the output file
+        :param function cmd_function: Function creating the compression command
+
+        """
+        output_file_basename = "{stub_name}-{version}-standalone.{ext}".format(
+            stub_name=self.stub_name,
+            version=self.version,
+            ext=ext,
+        )
+        logger.info("Writing “%s”…", output_file_basename)
+        output_file_path = os.path.join(output_dir, output_file_basename)
+        cmd = cmd_function(
+            os.path.abspath(output_file_path),
+            os.path.curdir,
+        )
+        subprocess.check_call(
+            cmd,
+            cwd=root,
+        )
+        return [output_file_path]
+
     def _write_zip_distfile(self, root, output_dir):
         """Package a frozen bundle as a standalone zipfile.
 
@@ -720,22 +748,32 @@ class NativeBundle:
         :param str output_dir: Where to write the output zipfile.
 
         """
-        output_file_basename = "{stub_name}-{version}-standalone.zip".format(
-            stub_name=self.stub_name,
-            version=self.version,
+        def cmd_array(output_file_path, root_relative_input_path):
+            return [
+                "zip", "-Xq9r",
+                output_file_path,
+                root_relative_input_path,
+            ]
+        return self._write_generic_distfile(
+            root, output_dir, "zip", cmd_array
         )
-        logger.info("Writing “%s”…", output_file_basename)
-        output_file_path = os.path.join(output_dir, output_file_basename)
-        cmd = [
-            "zip", "-Xq9r",
-            os.path.abspath(output_file_path),
-            os.path.curdir,
-        ]
-        subprocess.check_call(
-            cmd,
-            cwd=root,
+
+    def _write_7z_distfile(self, root, output_dir):
+        """Package a frozen bundle as a standalone 7z archive.
+
+        :param str root: Frozen bundle location.
+        :param str output_dir: Where to write the output 7z file.
+
+        """
+        def cmd_array(output_file_path, root_relative_input_path):
+            return [
+                "7z", "a", "-bd", "-m{x=9}",
+                output_file_path,
+                root_relative_input_path,
+            ]
+        return self._write_generic_distfile(
+            root, output_dir, "7z", cmd_array
         )
-        return [output_file_path]
 
     def _write_nsis_distfile(self, root, output_dir):
         """Package a frozen bundle as an NSIS installer executable.
