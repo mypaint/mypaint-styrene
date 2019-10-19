@@ -767,7 +767,7 @@ class NativeBundle:
         """
         def cmd_array(output_file_path, root_relative_input_path):
             return [
-                "7z", "a", "-bd", "-m{x=9}",
+                "7z", "a", "-bd", "-mx=6",
                 output_file_path,
                 root_relative_input_path,
             ]
