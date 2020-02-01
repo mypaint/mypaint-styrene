@@ -73,6 +73,7 @@ class DesktopEntry:
         self._exec = []      # raw Exec line
         self._cmdline = []    # parsed Exec line
         self._icon = ""
+        self._ico_location = None
         self._mimetypes = []
         self._terminal = False
         self._force_helper = False
@@ -149,6 +150,7 @@ class DesktopEntry:
             ("_name", "Name", str),
             ("_comment", "Comment", str),
             ("_icon", "Icon", str),
+            ("_ico_location", "IcoFileLocation", str),
             ("_exec", "Exec", str),
             ("_cmdline", "Exec", self._tokenize_cmdline),
             ("_terminal", "Terminal", boolify),
@@ -209,7 +211,15 @@ class DesktopEntry:
     # Actions:
 
     def install_icon(self, root, msystem):
-        """Convert and install .ico icons.
+        """Convert (if required) and install .ico icons.
+
+        If the IcoFileLocation was defined in the launcher definition,
+        it is expected that x.ico should be present in that directory,
+        where x is the icon name specified in the Icon field.
+
+        If IcoFileLocation is not defined, construction of a new .ico
+        file will be attempted, using png files that are searched for
+        in the standard icon directories (themes: Adwaita / hicolor).
 
         :param str root: Bundle root directory.
         :param consts.MSYSTEM msystem: The MSYSTEM to search.
@@ -225,6 +235,15 @@ class DesktopEntry:
 
         prefix = os.path.join(root, msystem.subdir)
         outdir = os.path.join(root, consts.ICO_FILE_SUBDIR)
+
+        if self._ico_location is not None:
+            ico_file = "%s.ico" % icon
+            ico_path = os.path.join(self._ico_location, ico_file)
+            if os.path.isfile(ico_path):
+                shutil.copyfile(ico_path, os.path.join(outdir, ico_file))
+                return icon
+            else:
+                return None
 
         pngfile_infos = []
         for i in range(2, 33):
