@@ -102,9 +102,9 @@ class ColorFormatter (logging.Formatter):
 
 # Top-level commands:
 
-def process_spec_file(spec, options):
+def process_spec_file(spec, spec_dir, options):
     """Prepare the bundle as specified in the spec."""
-    bundle = NativeBundle(spec)
+    bundle = NativeBundle(spec, spec_dir)
     bundle.check_runtime_dependencies()
     output_dir = options.output_dir
     if not output_dir:
@@ -267,7 +267,12 @@ def main():
             )
             sys.exit(2)
         try:
-            process_spec_file(spec, options)
+            spec_dir = os.path.dirname(spec_file)
+            if spec_dir == "":
+                spec_dir = os.path.join(".", "/")
+            else:
+                spec_dir = os.path.join(spec_dir, "/")
+            process_spec_file(spec, spec_dir, options)
         except Exception:
             logger.exception(
                 "Unexpected error while processing “%s”",

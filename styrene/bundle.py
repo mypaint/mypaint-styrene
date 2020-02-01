@@ -78,10 +78,11 @@ class NativeBundle:
 
     _SECTION_NAME = "bundle"
 
-    def __init__(self, spec):
+    def __init__(self, spec, spec_dir):
         """Initializes a bundle from a specification."""
         super().__init__()
         self.spec = spec
+        self.spec_dir = spec_dir
         #: The target architecture, prefixes etc.
         self.msystem = consts.MSYSTEM.from_environ()
         #: Collected metadata, only useful after package installation.
@@ -130,6 +131,7 @@ class NativeBundle:
         """
         spec = self.spec
         substs = dict(self.msystem.substs)
+        substs['cfg_dir'] = self.spec_dir
 
         self.launchers = []
         launcher_names = self._section.get("launchers", "").strip().split()
