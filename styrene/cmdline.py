@@ -272,6 +272,7 @@ def main():
                 spec_dir = os.path.join(".", "/")
             else:
                 spec_dir = os.path.join(spec_dir, "/")
+            logger.info("Spec location: %s", spec_dir)
             process_spec_file(spec, spec_dir, options)
         except Exception:
             logger.exception(

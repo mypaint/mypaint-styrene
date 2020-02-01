@@ -239,10 +239,12 @@ class DesktopEntry:
         if self._ico_location is not None:
             ico_file = "%s.ico" % icon
             ico_path = os.path.join(self._ico_location, ico_file)
+            logger.info("Using existing .ico file: %s", ico_path)
             if os.path.isfile(ico_path):
                 shutil.copyfile(ico_path, os.path.join(outdir, ico_file))
                 return icon
             else:
+                logger.warning(".ico file not found: '%s'", ico_path)
                 return None
 
         pngfile_infos = []
