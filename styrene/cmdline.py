@@ -269,9 +269,8 @@ def main():
         try:
             spec_dir = os.path.dirname(spec_file)
             if spec_dir == "":
-                spec_dir = os.path.join(".", "/")
-            else:
-                spec_dir = os.path.join(spec_dir, "/")
+                spec_dir = "."
+            spec_dir += os.path.sep
             logger.info("Spec location: %s", spec_dir)
             process_spec_file(spec, spec_dir, options)
         except Exception:
