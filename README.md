@@ -3,7 +3,13 @@ _(Perhaps it's wrapped in some cellophane)_
 
 [Original Styrene repository](https://github.com/achadwick/styrene/)
 
-Right now, the only addition is a `--build-7z` option that (unsurprisingly)
-produces a 7z archive of the build output.
 Refer to the [original docs](https://styrene.readthedocs.io/en/latest/)
 for more information.
+
+### Additional features
+
+These are the additions to MyPaint-Styrene that are not part of the original.
+
+* The `--build-7z` option bundles the build output in a 7z archive.
+* The `IcoFileLocation` launcher field enables use of premade .ico files.
+* The substitution `{cfg_dir}` can be used in a specification file, to define a path that is relative to the location of the specification file itself.
