@@ -13,3 +13,4 @@ These are the additions to MyPaint-Styrene that are not part of the original.
 * The `--build-7z` option bundles the build output in a 7z archive.
 * The `IcoFileLocation` launcher field enables use of premade .ico files.
 * The substitution `{cfg_dir}` can be used in a specification file, to define a path that is relative to the location of the specification file itself.
+* Defaulting to lzma compression for installers.

@@ -12,7 +12,7 @@ OutFile "%(output_file_name)s"
 InstallDir "$PROGRAMFILES%(bits)s\%(stub_name)s"
 InstallDirRegKey HKLM "Software\%(regname)s" "Install_Dir"
 RequestExecutionLevel admin
-SetCompressor bzip2
+SetCompressor /SOLID lzma
 
 ; Icons
 
