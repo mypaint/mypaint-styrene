@@ -200,6 +200,7 @@ which will be resolved relative to the bundle root.
 File matches will be deleted,
 and folder matches will be deleted recursively.
 
+
 nodelete
 ........
     ::
@@ -233,6 +234,26 @@ If a ``**`` is followed by a ``/``,
 then it matches only a sequence of subdirectories.
 
 Styrene use Python’s `glob module`_ for this type of path matching.
+
+Deletion priority
+-----------------
+
+By default ``nodelete`` entries take precedence over  ``delete`` entries.
+You can change the delete/nodelete priority for each entry to override
+this, allowing e.g. a more specific pattern to be deleted even if it
+matches a pattern in a ``nodelete`` entry.
+
+Amending an entry line with "@-rank-n" sets the "rank" of that entry
+to n, where n is a positive integer. Entries without specified ranks
+are assigned rank 0. If a file matches patterns in both ``delete`` and
+``nodelete``, the pattern with the highest rank takes precedence.
+If all matching patterns have the same rank, nodelete entries take
+predence.
+
+If you need to match against filenames that end in e.g. @-rank-23,
+end the line with a space to prevent the preceding characters to
+be interpreted as a specifier.
+
 
 Launcher definitions
 --------------------

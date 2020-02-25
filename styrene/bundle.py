@@ -18,7 +18,7 @@
 
 """Bundle specification, read from input .cfg files, writes main output.
 """
-
+from __future__ import print_function
 from .launchers import DesktopEntry
 from .utils import str2key
 from .utils import nsis_escape
@@ -648,10 +648,9 @@ class NativeBundle:
         section = self._section
         substs = self.msystem.substs
 
-        nodelete_spec = section.get("nodelete", "")
-        nodelete_patterns = nodelete_spec.format(**substs)
-        nodelete_patterns = nodelete_spec.strip().split()
-        nodelete_patterns.extend([
+        nodelete_spec = section.get("nodelete", "").format(**substs)
+        nodelete_patterns = list(ranked_patterns(nodelete_spec))
+        nodelete_patterns.extend([(p, 99) for p in [
             # Launchers and top-level speccial dirs
             "*.exe",
             "_icons",
@@ -667,21 +666,23 @@ class NativeBundle:
             "usr/bin/msys-gcc*.dll",
             "usr/bin/msys-iconv-*.dll",
             "mingw*/bin/win7appid.exe",
-        ])
+        ]])
         if options.output_dir:
             # To support re-runs with the same output tree,
             # always retain a minimum viable Pacman database.
             # Post-install files are only kept if specified in the
             # config file.
-            nodelete_patterns.append("var/lib/pacman/sync")
-            nodelete_patterns.append("var/lib/pacman/local/ALPM_DB_VERSION")
-            nodelete_patterns.append("var/lib/pacman/local/*/desc")
-            nodelete_patterns.append("var/lib/pacman/local/*/files")
-            nodelete_patterns.append("var/lib/pacman/local/*/mtree")
+            pref = "var/lib/pacman/"
+            nodelete_patterns.extend([(pref + suff, 99) for suff in [
+                "sync",
+                "local/ALPM_DB_VERSION",
+                "local/*/desc",
+                "local/*/files",
+                "local/*/mtree",
+            ]])
 
-        delete_spec = section.get("delete", "")
-        delete_spec = delete_spec.format(**substs)
-        delete_patterns = delete_spec.strip().split()
+        delete_spec = section.get("delete", "").format(**substs)
+        delete_patterns = ranked_patterns(delete_spec)
 
         surplus = list(find_surplus(root, delete_patterns, nodelete_patterns))
         if len(surplus) == 0:
@@ -924,6 +925,25 @@ class NativeBundle:
         return [installer_exe_path]
 
 
+def ranked_patterns(patterns):
+    """Return stripped pattern strings w. associated rank
+    """
+    rank_prefix = '@-rank-'
+    prefix_length = len(rank_prefix)
+    rank_re = re.compile(r'%s\d+$' % rank_prefix)
+
+    def rank(pattern):
+        r = 0
+        match = rank_re.search(pattern)
+        if match:
+            s = match.start()
+            pattern = match.string[:s]
+            r = int(match.string[s + prefix_length:])
+        return (pattern.strip(), r)
+
+    return map(rank, filter(lambda s: s.strip(), patterns.split('\n')))
+
+
 def find_surplus(root, del_patterns, keep_patterns):
     """Find "surplus" files and folders within a root."""
 
@@ -946,19 +966,23 @@ def find_surplus(root, del_patterns, keep_patterns):
 
     # Keep every matched path, its contents if it's a folder,
     # and every folder path between the root and the match.
-    keep_paths = set([root])
-    for pattern in keep_patterns:
+    keep_paths = {}
+
+    def update(path, rank):
+        keep_paths[path] = max(keep_paths.get(path, 0), rank)
+
+    for pattern, rank in keep_patterns:
         pattern = os.path.join(glob.escape(root), pattern)
         for path in glob.iglob(pattern, **glob_opts):
             # Item itself
             path = os.path.normpath(path)
-            keep_paths.add(path)
+            update(path, rank)
             # Recursive contents
             if os.path.isdir(path):
                 c_pattern = os.path.join(glob.escape(path), "**")
                 for c_path in glob.iglob(c_pattern, **glob_opts):
                     c_path = os.path.normpath(c_path)
-                    keep_paths.add(c_path)
+                    update(c_path, rank)
             # Paths between root and match
             p, t = path, None
             root_pfx = root
@@ -966,23 +990,27 @@ def find_surplus(root, del_patterns, keep_patterns):
                 root_pfx += os.path.sep
             while p is not None and p.startswith(root_pfx):
                 p = os.path.normpath(p)
-                keep_paths.add(p)
+                update(p, rank)
                 p, t = os.path.split(p)
 
     # Everything matched by the delete patterns minus those matched by
-    # the keep patterns is surplus.
+    # the keep patterns (unless the delete pattern outranks it) is surplus.
     surplus_paths = set()
-    for pattern in del_patterns:
+
+    def is_surplus(path, rank):
+        return path not in keep_paths or rank > keep_paths[path]
+
+    for pattern, rank in del_patterns:
         pattern = os.path.join(glob.escape(root), pattern)
         for path in glob.glob(pattern, **glob_opts):
             path = os.path.normpath(path)
-            if path not in keep_paths:
+            if is_surplus(path, rank):
                 surplus_paths.add(path)
             if os.path.isdir(path):
                 c_pattern = os.path.join(glob.escape(path), "**")
                 for c_path in glob.glob(c_pattern, **glob_opts):
                     c_path = os.path.normpath(c_path)
-                    if c_path not in keep_paths:
+                    if is_surplus(c_path, rank):
                         surplus_paths.add(c_path)
 
-    return surplus_paths
+    return surplus_paths - {root}
